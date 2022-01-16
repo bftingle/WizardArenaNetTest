@@ -29,16 +29,16 @@ public class Health : MonoBehaviour
 
         HealthBar.fillAmount = currentHealth/maxHealth;
         BonusBar.fillAmount = currentBonus/maxHealth;
-
-        cameraToLookAt = Camera.main;
     }
 
     // Update is called once per frame
     void Update()
     {
-        var barTransf = UI.GetComponent<Transform>();
-        barTransf.LookAt(cameraToLookAt.transform);
-        barTransf.localRotation = Quaternion.LookRotation(cameraToLookAt.transform.forward);
+        if (cameraToLookAt != null) {
+            var barTransf = UI.GetComponent<Transform>();
+            barTransf.LookAt(cameraToLookAt.transform);
+            barTransf.localRotation = Quaternion.LookRotation(cameraToLookAt.transform.forward);
+        }
 
         int i = 0; 
         while (i < auras.Count){
@@ -50,6 +50,8 @@ public class Health : MonoBehaviour
                 i += 1;
             }
         }
+
+        if (cameraToLookAt == null && Camera.main != null) cameraToLookAt = Camera.main;
     }
 
     public void removeAura(int i){
