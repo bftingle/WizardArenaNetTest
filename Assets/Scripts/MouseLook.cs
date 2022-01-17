@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Netcode;
 
-public class MouseLook : MonoBehaviour
+public class MouseLook : NetworkBehaviour
 {
 
     public float mouseSensitivity = 10.0f;
@@ -29,7 +30,16 @@ public class MouseLook : MonoBehaviour
 
     bool paused = false;
 
-    
+    [SerializeField]
+    private NetworkVariable<float> forwardAxis = new NetworkVariable<float>();
+    [SerializeField]
+    private NetworkVariable<float> sideAxis = new NetworkVariable<float>();
+    [SerializeField]
+    private NetworkVariable<float> verticalAxis = new NetworkVariable<float>();
+
+    private float oldForwardAxis;
+    private float oldSideAxis;
+    private float oldVerticalAxis;
 
     // Start is called before the first frame update
     void Start()
@@ -43,8 +53,22 @@ public class MouseLook : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
     }
 
-    // Update is called once per frame
-    void Update()
+    void Update() {
+        if (IsServer) {
+            UpdateServer();
+        }
+
+        if (IsClient && IsOwner) {
+            UpdateClient();
+        }
+    }
+
+    void UpdateServer() {
+        float tScale = Time.deltaTime;
+        controller.Move(new Vector3(sideAxis.Value, verticalAxis.Value, forwardAxis.Value) * tScale);
+    }
+
+    void UpdateClient()
     {
         if (Input.GetKeyDown("escape"))
         {
@@ -94,8 +118,22 @@ public class MouseLook : MonoBehaviour
             }
             move.y = yVelocity;
 
+            //controller.Move(move * tScale);
 
-            controller.Move(move * tScale);
+            if (oldForwardAxis != move.z || oldSideAxis != move.x || oldVerticalAxis != move.y) {
+                oldForwardAxis = move.z;
+                oldSideAxis = move.x;
+                oldVerticalAxis = move.y;
+
+                UpdateClientPositionServerRpc(move.z, move.x, move.y);
+            }
         }
+    }
+
+    [ServerRpc]
+    public void UpdateClientPositionServerRpc(float moveZ, float moveX, float moveY) {
+        forwardAxis.Value = moveZ;
+        sideAxis.Value = moveX;
+        verticalAxis.Value = moveY;
     }
 }
