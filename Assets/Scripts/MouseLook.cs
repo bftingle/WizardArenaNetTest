@@ -1,7 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using Unity.Netcode;
+using Unity.Netcode.Samples;
+using UnityEngine;
+
+[RequireComponent(typeof(NetworkObject))]
+[RequireComponent(typeof(ClientNetworkTransform))]
 
 public class MouseLook : NetworkBehaviour
 {
@@ -30,16 +34,7 @@ public class MouseLook : NetworkBehaviour
 
     bool paused = false;
 
-    [SerializeField]
-    private NetworkVariable<float> forwardAxis = new NetworkVariable<float>();
-    [SerializeField]
-    private NetworkVariable<float> sideAxis = new NetworkVariable<float>();
-    [SerializeField]
-    private NetworkVariable<float> verticalAxis = new NetworkVariable<float>();
-
-    private float oldForwardAxis;
-    private float oldSideAxis;
-    private float oldVerticalAxis;
+    
 
     // Start is called before the first frame update
     void Start()
@@ -51,25 +46,20 @@ public class MouseLook : NetworkBehaviour
         controller = this.GetComponent<CharacterController>();
         
         Cursor.lockState = CursorLockMode.Locked;
+
+        if (IsLocalPlayer) {
+            myCamera.SetActive(true);
+        }
+        else {
+            myCamera.SetActive(false);
+        }
     }
 
     void Update() {
-        if (IsServer) {
-            UpdateServer();
-        }
-
-        if (IsClient && IsOwner) {
-            UpdateClient();
-        }
+        if (IsClient && IsOwner) ClientInput();
     }
 
-    void UpdateServer() {
-        float tScale = Time.deltaTime;
-        controller.Move(new Vector3(sideAxis.Value, verticalAxis.Value, forwardAxis.Value) * tScale);
-    }
-
-    void UpdateClient()
-    {
+    void ClientInput() {
         if (Input.GetKeyDown("escape"))
         {
             paused = !paused;
@@ -118,22 +108,8 @@ public class MouseLook : NetworkBehaviour
             }
             move.y = yVelocity;
 
-            //controller.Move(move * tScale);
 
-            if (oldForwardAxis != move.z || oldSideAxis != move.x || oldVerticalAxis != move.y) {
-                oldForwardAxis = move.z;
-                oldSideAxis = move.x;
-                oldVerticalAxis = move.y;
-
-                UpdateClientPositionServerRpc(move.z, move.x, move.y);
-            }
+            controller.Move(move * tScale);
         }
-    }
-
-    [ServerRpc]
-    public void UpdateClientPositionServerRpc(float moveZ, float moveX, float moveY) {
-        forwardAxis.Value = moveZ;
-        sideAxis.Value = moveX;
-        verticalAxis.Value = moveY;
     }
 }

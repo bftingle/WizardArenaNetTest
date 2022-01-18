@@ -9,13 +9,17 @@ public class UIManager : MonoBehaviour
     public Button startHostButton;
     public Button startServerButton;
     public Button startClientButton;
+    public InputField joinCodeInput;
+    public RelayManager relayManager;
     
     private void Awake() {
         Cursor.visible = true;
     }
 
     private void Start() {
-        startHostButton.onClick.AddListener(() => {
+        startHostButton.onClick.AddListener(async () => {
+            if (relayManager.IsRelayEnabled) await relayManager.SetupRelay();
+
             if (NetworkManager.Singleton.StartHost()) {
                 Debug.Log("Host Started");
             } else {
@@ -30,7 +34,9 @@ public class UIManager : MonoBehaviour
                 Debug.Log("Server Not Started");
             }
         });
-        startClientButton.onClick.AddListener(() => {
+        startClientButton.onClick.AddListener(async () => {
+            if (relayManager.IsRelayEnabled && !string.IsNullOrEmpty(joinCodeInput.text)) await relayManager.JoinRelay(joinCodeInput.text);
+
             if (NetworkManager.Singleton.StartClient()) {
                 Debug.Log("Client Started");
             }
