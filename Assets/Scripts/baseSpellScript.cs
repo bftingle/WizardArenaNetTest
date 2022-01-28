@@ -8,28 +8,29 @@ public class baseSpellScript : ScriptableObject
     public int id;
     public float manaCost;
     public float castTime;
+
     public bool isProjectile;
     public float projSpeed;
+    public float projLifespan;
     public GameObject projObj;
-    public float damage;
-    public Sprite icon;
-    public bool reqTarget;
 
+    public float damage;
+    public float ultCost;
+    public float range;
+    public bool reqTarget;
     public bool exhaust;
     public baseAuraScript aura_A;
     public baseAuraScript aura_B;
     public baseSpellScript token;
 
+    public Sprite icon;
     public ParticleSystem castParticle;
     public ParticleSystem hitParticle;    
 
     public virtual void onCastGeneral(Transform Player, Transform Target, int slot){
-        Mana pMana = (Mana) Player.GetComponent<Mana>();
-        pMana.changeMana(this.manaCost * -1);
         if (castParticle != null){
             Instantiate(castParticle, Player);
         }
-
         this.onCastSpecific(Player, Target, slot);
 
         if (isProjectile){
@@ -43,8 +44,19 @@ public class baseSpellScript : ScriptableObject
             flyScript.speed = projSpeed;
             flyScript.Source = Player;
             flyScript.slot = slot;
+            //flyScript.timerRunning = true;
+            flyScript.lifespan = projLifespan;
+            Debug.Log("this == ");
+            Debug.Log(this);
         } else {
-            this.onHit(Player, Target, slot);
+            if (reqTarget){
+                if( ! Target.GetComponent<PlayerStateScript>().isShielded() ){
+                    this.onHit(Player, Target, slot);
+                }
+            } else {
+                this.onHit(Player, Target, slot);
+            }
+            
         }
     }
 
@@ -53,8 +65,6 @@ public class baseSpellScript : ScriptableObject
     }
 
     public virtual void onHit(Transform Player, Transform Target, int slot){
-        Health tHP = (Health) Target.GetComponent<Health>();
-        tHP.takeDamage(this.damage);
         Debug.Log("Hit a basic spell");
         if (hitParticle != null){
             Instantiate(hitParticle, Target);

@@ -37,6 +37,7 @@ public class baseAuraScript : ScriptableObject
 
 public class liveAura {
     public baseAuraScript aura;
+
     public Transform on;
     public Transform src;
     public int stacks;
@@ -47,8 +48,12 @@ public class liveAura {
     ParticleSystem activeParticle;
 
     public void onApply(){
-        activeParticle = GameObject.Instantiate(aura.auraParticle, on);
+        if (aura.auraParticle != null)
+        {
+            activeParticle = GameObject.Instantiate(aura.auraParticle, on);
+        }
         aura.onApply(src, on);
+
     }
 
     public void onTick(){
@@ -56,13 +61,19 @@ public class liveAura {
     }
 
     public void onExpire(){
-        GameObject.Destroy(activeParticle.gameObject);
+        if (aura.auraParticle != null)
+        {
+            GameObject.Destroy(activeParticle.gameObject);
+        }
         aura.onExpire(src, on, stacks, tickNum);
     }
 
     public void onStack(){
-        aura.onStack(src, on, stacks);
-        stacks += 1;
+        if (stacks < aura.maxStacks)
+        {
+            stacks += 1;
+            aura.onStack(src, on, stacks);
+        }
     }
 
     public int update(float delta){

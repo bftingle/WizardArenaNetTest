@@ -14,12 +14,12 @@ public class basicBurnSpell : baseSpellScript
     // Update is called once per frame
     override public void onHit(Transform Player, Transform Target, int slot)
     {
-        Health tHP = (Health) Target.GetComponent<Health>();
+        PlayerStateScript target = Target.GetComponent<PlayerStateScript>();
         float duration = 5.0f;
-        if (tHP.hasAura(aura_A.id) != -1){
+        if (target.hasAura(aura_A.id) != -1){
             duration = 15.0f;
         }
-        tHP.applyAura(Player, aura_A, duration);
+        target.applyAura(Player, aura_A, duration);
         if (hitParticle != null){
             Instantiate(hitParticle, Target);
         }
