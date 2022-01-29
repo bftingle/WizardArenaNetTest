@@ -3,6 +3,7 @@ using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace DapperDino.UMT.Lobby.Networking {
     public class GameNetPortal : MonoBehaviour {
@@ -17,6 +18,9 @@ namespace DapperDino.UMT.Lobby.Networking {
         public event Action<ulong, int> OnClientSceneChanged;
 
         public event Action OnUserDisconnectRequested;
+
+        public InputField joinCodeInput;
+        public RelayManager relayManager;
 
         private void Awake() {
             if (instance != null && instance != this) {
@@ -49,9 +53,24 @@ namespace DapperDino.UMT.Lobby.Networking {
         }
 
         public void StartHost() {
-            NetworkManager.Singleton.StartHost();
+            //NetworkManager.Singleton.StartHost();
+            StartHostAsync();
 
             RegisterClientMessageHandlers();
+        }
+
+        public async void StartHostAsync() {
+            if (relayManager.IsRelayEnabled) {
+                joinCodeInput.text = (await relayManager.SetupRelay()).JoinCode;
+                joinCodeInput.readOnly = true;
+            }
+
+            if (NetworkManager.Singleton.StartHost()) {
+                Debug.Log("Host Started");
+            }
+            else {
+                Debug.Log("Host Not Started");
+            }
         }
 
         public void RequestDisconnect() {

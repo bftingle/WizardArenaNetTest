@@ -3,6 +3,7 @@ using System.Text;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace DapperDino.UMT.Lobby.Networking {
     [RequireComponent(typeof(GameNetPortal))]
@@ -15,6 +16,9 @@ namespace DapperDino.UMT.Lobby.Networking {
         public event Action<ConnectStatus> OnConnectionFinished;
 
         public event Action OnNetworkTimedOut;
+
+        public InputField joinCodeInput;
+        public RelayManager relayManager;
 
         private GameNetPortal gameNetPortal;
 
@@ -50,17 +54,33 @@ namespace DapperDino.UMT.Lobby.Networking {
         }
 
         public void StartClient() {
-            var payload = JsonUtility.ToJson(new ConnectionPayload() {
-                clientGUID = Guid.NewGuid().ToString(),
-                clientScene = SceneManager.GetActiveScene().buildIndex,
-                playerName = PlayerPrefs.GetString("PlayerName", "Missing Name")
-            });
+            //var payload = JsonUtility.ToJson(new ConnectionPayload() {
+            //    clientGUID = Guid.NewGuid().ToString(),
+            //    clientScene = SceneManager.GetActiveScene().buildIndex,
+            //    playerName = PlayerPrefs.GetString("PlayerName", "Missing Name")
+            //});
 
-            byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
+            //byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
 
-            NetworkManager.Singleton.NetworkConfig.ConnectionData = payloadBytes;
+            //NetworkManager.Singleton.NetworkConfig.ConnectionData = payloadBytes;
 
-            NetworkManager.Singleton.StartClient();
+            //NetworkManager.Singleton.StartClient();
+
+            StartClientAsync();
+        }
+
+        public async void StartClientAsync() {
+            if (relayManager.IsRelayEnabled && !string.IsNullOrEmpty(joinCodeInput.text)) {
+                await relayManager.JoinRelay(joinCodeInput.text);
+                joinCodeInput.readOnly = true;
+            }
+
+            if (NetworkManager.Singleton.StartClient()) {
+                Debug.Log("Client Started");
+            }
+            else {
+                Debug.Log("Client Not Started");
+            }
         }
 
         private void HandleNetworkReadied() {

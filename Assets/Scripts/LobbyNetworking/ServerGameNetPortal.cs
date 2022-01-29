@@ -75,13 +75,13 @@ namespace DapperDino.UMT.Lobby.Networking {
         public void StartGame() {
             gameInProgress = true;
 
-            NetworkManager.Singleton.SceneManager.LoadScene("Scene_Main", LoadSceneMode.Single);
+            NetworkManager.Singleton.SceneManager.LoadScene("SampleScene", LoadSceneMode.Single);
         }
 
         public void EndRound() {
             gameInProgress = false;
 
-            NetworkManager.Singleton.SceneManager.LoadScene("Scene_Lobby", LoadSceneMode.Single);
+            NetworkManager.Singleton.SceneManager.LoadScene("Menu", LoadSceneMode.Single);
         }
 
         private void HandleNetworkReadied() {
@@ -91,7 +91,7 @@ namespace DapperDino.UMT.Lobby.Networking {
             NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnect;
             gameNetPortal.OnClientSceneChanged += HandleClientSceneChanged;
 
-            NetworkManager.Singleton.SceneManager.LoadScene("Scene_Lobby", LoadSceneMode.Single);
+            //NetworkManager.Singleton.SceneManager.LoadScene("Scene_Lobby", LoadSceneMode.Single);
 
             if (NetworkManager.Singleton.IsHost) {
                 clientSceneMap[NetworkManager.Singleton.LocalClientId] = SceneManager.GetActiveScene().buildIndex;
@@ -127,7 +127,7 @@ namespace DapperDino.UMT.Lobby.Networking {
 
             ClearData();
 
-            SceneManager.LoadScene("Scene_Menu");
+            SceneManager.LoadScene("Menu");
         }
 
         private void HandleServerStarted() {
