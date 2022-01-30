@@ -27,8 +27,4 @@ public class PlayerManager : NetworkBehaviour
             }
         };
     }
-
-    private void Update() {
-        
-    }
 }

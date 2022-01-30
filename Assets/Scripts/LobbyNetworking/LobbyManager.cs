@@ -21,7 +21,7 @@ public class LobbyManager : NetworkBehaviour
         lobbyPlayers = new NetworkList<LobbyPlayerState>();
     }
 
-    public override void OnNetworkSpawn() {
+    public void OnNetworkSpawnManual() {
         if (IsClient) {
             lobbyPlayers.OnListChanged += HandleLobbyPlayersStateChanged;
         }
@@ -67,6 +67,7 @@ public class LobbyManager : NetworkBehaviour
             playerData.Value.PlayerName,
             false
         ));
+        Debug.Log(playerData.Value.PlayerName);
     }
 
     private void HandleClientDisconnect(ulong clientId) {

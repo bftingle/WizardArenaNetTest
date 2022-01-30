@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Threading.Tasks;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -21,7 +23,8 @@ namespace DapperDino.UMT.Lobby.Networking {
 
         public InputField joinCodeInput;
         public RelayManager relayManager;
-
+        public LobbyManager lobbyManager;
+        
         private void Awake() {
             if (instance != null && instance != this) {
                 Destroy(gameObject);
@@ -56,10 +59,11 @@ namespace DapperDino.UMT.Lobby.Networking {
             //NetworkManager.Singleton.StartHost();
             StartHostAsync();
 
-            RegisterClientMessageHandlers();
+            //RegisterClientMessageHandlers();
         }
 
         public async void StartHostAsync() {
+            Debug.Log("async runs");
             if (relayManager.IsRelayEnabled) {
                 joinCodeInput.text = (await relayManager.SetupRelay()).JoinCode;
                 joinCodeInput.readOnly = true;
@@ -67,6 +71,8 @@ namespace DapperDino.UMT.Lobby.Networking {
 
             if (NetworkManager.Singleton.StartHost()) {
                 Debug.Log("Host Started");
+                RegisterClientMessageHandlers();
+                lobbyManager.OnNetworkSpawnManual();
             }
             else {
                 Debug.Log("Host Not Started");

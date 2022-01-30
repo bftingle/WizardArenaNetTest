@@ -54,18 +54,17 @@ namespace DapperDino.UMT.Lobby.Networking {
         }
 
         public void StartClient() {
-            //var payload = JsonUtility.ToJson(new ConnectionPayload() {
-            //    clientGUID = Guid.NewGuid().ToString(),
-            //    clientScene = SceneManager.GetActiveScene().buildIndex,
-            //    playerName = PlayerPrefs.GetString("PlayerName", "Missing Name")
-            //});
+            var payload = JsonUtility.ToJson(new ConnectionPayload() {
+                clientGUID = Guid.NewGuid().ToString(),
+                clientScene = SceneManager.GetActiveScene().buildIndex,
+                playerName = PlayerPrefs.GetString("PlayerName", "Missing Name")
+            });
 
-            //byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
+            byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
 
-            //NetworkManager.Singleton.NetworkConfig.ConnectionData = payloadBytes;
+            NetworkManager.Singleton.NetworkConfig.ConnectionData = payloadBytes;
 
             //NetworkManager.Singleton.StartClient();
-
             StartClientAsync();
         }
 

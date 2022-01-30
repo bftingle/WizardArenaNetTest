@@ -130,7 +130,7 @@ namespace DapperDino.UMT.Lobby.Networking {
             SceneManager.LoadScene("Menu");
         }
 
-        private void HandleServerStarted() {
+        public void HandleServerStarted() {
             if (!NetworkManager.Singleton.IsHost) { return; }
 
             string clientGuid = Guid.NewGuid().ToString();
