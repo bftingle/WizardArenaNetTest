@@ -63,7 +63,6 @@ namespace DapperDino.UMT.Lobby.Networking {
         }
 
         public async void StartHostAsync() {
-            Debug.Log("async runs");
             if (relayManager.IsRelayEnabled) {
                 joinCodeInput.text = (await relayManager.SetupRelay()).JoinCode;
                 joinCodeInput.readOnly = true;

@@ -88,8 +88,10 @@ public class LobbyManager : NetworkBehaviour
                     lobbyPlayers[i].PlayerName,
                     !lobbyPlayers[i].IsReady
                 );
+                Debug.Log("ready info sent");
                 if (IsEveryoneReady()) {
                     countdown = 3;
+                    Debug.Log("countdown launched");
                     if (!isCountdown) StartCoroutine(StartGameCountdown());
                 }
             }
@@ -108,9 +110,11 @@ public class LobbyManager : NetworkBehaviour
     }
 
     private IEnumerator StartGameCountdown() {
+        Debug.Log("countdown started");
         isCountdown = true;
         countdownText.enabled = true;
         for (; countdown > 0; countdown--) {
+            Debug.Log("countdown: " + countdown);
             countdownText.text = countdown.ToString();
             yield return new WaitForSeconds(1);
             if (!IsEveryoneReady()) {
@@ -119,7 +123,9 @@ public class LobbyManager : NetworkBehaviour
                 yield break;
             }
         }
+        Debug.Log("reached 0");
         countdownText.text = countdown.ToString();
+        yield return new WaitForSeconds(3);
         StartGameServerRpc(NetworkManager.Singleton.LocalClientId);
         isCountdown = false;
         yield break;
