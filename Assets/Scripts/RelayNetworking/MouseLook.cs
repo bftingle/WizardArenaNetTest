@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
-public class MouseLook : MonoBehaviour
+public class MouseLook : NetworkBehaviour
 {
 
     public float mouseSensitivity = 10.0f;
@@ -41,6 +42,13 @@ public class MouseLook : MonoBehaviour
         controller = this.GetComponent<CharacterController>();
         
         Cursor.lockState = CursorLockMode.Locked;
+
+        if (IsLocalPlayer) {
+            myCamera.SetActive(true);
+        }
+        else {
+            myCamera.SetActive(false);
+        }
     }
 
     // Update is called once per frame

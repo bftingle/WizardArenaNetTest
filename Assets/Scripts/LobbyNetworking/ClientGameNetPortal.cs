@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Text;
 using Unity.Netcode;
 using UnityEngine;
@@ -19,6 +20,8 @@ namespace DapperDino.UMT.Lobby.Networking {
 
         public InputField joinCodeInput;
         public RelayManager relayManager;
+        public LobbyManager lobbyManager;
+        public PlayerManager playerManager;
 
         private GameNetPortal gameNetPortal;
 
@@ -76,10 +79,20 @@ namespace DapperDino.UMT.Lobby.Networking {
 
             if (NetworkManager.Singleton.StartClient()) {
                 Debug.Log("Client Started");
+                //playerManager.PlayersPlusPlusServerRpc();
+                StartCoroutine(DelayPPCallToServer());
             }
             else {
                 Debug.Log("Client Not Started");
             }
+        }
+
+        private IEnumerator DelayPPCallToServer() {
+            yield return new WaitForSeconds(3f);
+            Debug.Log("plussing boiiiiii");
+            playerManager.PlayersPlusPlusServerRpc();
+            yield return new WaitForSeconds(0.5f);
+            Debug.Log(playerManager.PlayersInGame);
         }
 
         private void HandleNetworkReadied() {

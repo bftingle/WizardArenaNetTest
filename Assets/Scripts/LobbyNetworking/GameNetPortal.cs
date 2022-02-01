@@ -24,7 +24,8 @@ namespace DapperDino.UMT.Lobby.Networking {
         public InputField joinCodeInput;
         public RelayManager relayManager;
         public LobbyManager lobbyManager;
-        
+        public PlayerManager playerManager;
+
         private void Awake() {
             if (instance != null && instance != this) {
                 Destroy(gameObject);
@@ -71,7 +72,7 @@ namespace DapperDino.UMT.Lobby.Networking {
             if (NetworkManager.Singleton.StartHost()) {
                 Debug.Log("Host Started");
                 RegisterClientMessageHandlers();
-                lobbyManager.OnNetworkSpawnManual();
+                playerManager.PlayersPlusPlusServerRpc();
             }
             else {
                 Debug.Log("Host Not Started");

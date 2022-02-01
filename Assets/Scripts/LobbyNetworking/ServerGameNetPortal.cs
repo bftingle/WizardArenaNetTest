@@ -130,7 +130,7 @@ namespace DapperDino.UMT.Lobby.Networking {
             SceneManager.LoadScene("Menu");
         }
 
-        public void HandleServerStarted() {
+        private void HandleServerStarted() {
             if (!NetworkManager.Singleton.IsHost) { return; }
 
             string clientGuid = Guid.NewGuid().ToString();
@@ -149,6 +149,7 @@ namespace DapperDino.UMT.Lobby.Networking {
         }
 
         private void ApprovalCheck(byte[] connectionData, ulong clientId, NetworkManager.ConnectionApprovedDelegate callback) {
+            Debug.Log("Approval started for " + clientId);
             if (connectionData.Length > MaxConnectionPayload) {
                 callback(false, 0, false, null, null);
                 return;
@@ -175,15 +176,18 @@ namespace DapperDino.UMT.Lobby.Networking {
 
             if (gameInProgress) {
                 gameReturnStatus = ConnectStatus.GameInProgress;
+                Debug.Log("GameInProgress for " + clientId);
             }
             else if (clientData.Count >= maxPlayers) {
                 gameReturnStatus = ConnectStatus.ServerFull;
+                Debug.Log("ServerFull for " + clientId);
             }
 
             if (gameReturnStatus == ConnectStatus.Success) {
                 clientSceneMap[clientId] = connectionPayload.clientScene;
                 clientIdToGuid[clientId] = connectionPayload.clientGUID;
                 clientData[connectionPayload.clientGUID] = new PlayerData(connectionPayload.playerName, clientId);
+                Debug.Log("Success for " + clientId);
             }
 
             callback(false, 0, true, null, null);

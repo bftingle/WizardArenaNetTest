@@ -5,27 +5,35 @@ using DapperDino.UMT.Lobby.Networking;
 using DapperDino.UMT.Lobby.UI;
 using Unity.Netcode;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using TMPro;
 
 public class LobbyManager : NetworkBehaviour
 {
     public GameObject[] lobbyPlayerModels;
     public Text countdownText;
     public GameObject playerPrefab;
+    public PlayerManager playerManager;
+    public ServerGameNetPortal serverGameNetPortal;
 
     private int countdown;
     private bool isCountdown;
 
     private NetworkList<LobbyPlayerState> lobbyPlayers;
-    
+    private NetworkVariable<NetworkString> playerName = new NetworkVariable<NetworkString>();
+    private List<NetworkVariable<ulong>> connectedClientIdsList = new List<NetworkVariable<ulong>>();
+
     private void Awake() {
         lobbyPlayers = new NetworkList<LobbyPlayerState>();
+
+        DontDestroyOnLoad(gameObject);
     }
 
-    public void OnNetworkSpawnManual() {
+    public override void OnNetworkSpawn() {
         if (IsClient) {
             lobbyPlayers.OnListChanged += HandleLobbyPlayersStateChanged;
         }
-
+        
         if (IsServer) {
             NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
             NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnect;
@@ -58,6 +66,18 @@ public class LobbyManager : NetworkBehaviour
     }
 
     private void HandleClientConnected(ulong clientId) {
+        int playersPre = playerManager.PlayersInGame;
+        Debug.Log("Players: " + playersPre);
+        StartCoroutine(WaitForPlayer(clientId, playersPre));
+    }
+
+    private IEnumerator WaitForPlayer(ulong clientId, int playersPre) {
+        yield return new WaitUntil(() => playerManager.PlayersInGame > playersPre);
+        HandleClientConnectedReady(clientId);
+    }
+
+    private void HandleClientConnectedReady(ulong clientId) {
+        Debug.Log("Connecting " + clientId);
         var playerData = ServerGameNetPortal.Instance.GetPlayerData(clientId);
 
         if (!playerData.HasValue) { return; }
@@ -70,7 +90,7 @@ public class LobbyManager : NetworkBehaviour
         Debug.Log(playerData.Value.PlayerName);
     }
 
-    private void HandleClientDisconnect(ulong clientId) {
+    public void HandleClientDisconnect(ulong clientId) {
         for (int i = 0; i < lobbyPlayers.Count; i++) {
             if (lobbyPlayers[i].ClientId == clientId) {
                 lobbyPlayers.RemoveAt(i);
@@ -88,48 +108,58 @@ public class LobbyManager : NetworkBehaviour
                     lobbyPlayers[i].PlayerName,
                     !lobbyPlayers[i].IsReady
                 );
-                Debug.Log("ready info sent");
                 if (IsEveryoneReady()) {
                     countdown = 3;
-                    Debug.Log("countdown launched");
                     if (!isCountdown) StartCoroutine(StartGameCountdown());
                 }
             }
         }
     }
 
-    [ServerRpc(RequireOwnership = false)]
-    private void StartGameServerRpc(ulong clientId, ServerRpcParams serverRpcParams = default) {
-        if (!IsEveryoneReady()) { return; }
-
-        ServerGameNetPortal.Instance.StartGame();
-
-        Debug.Log("guh");
-        GameObject go = Instantiate(playerPrefab, playerPrefab.transform.position, playerPrefab.transform.rotation);
-        go.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
-    }
-
     private IEnumerator StartGameCountdown() {
-        Debug.Log("countdown started");
         isCountdown = true;
-        countdownText.enabled = true;
+        countdownText.gameObject.SetActive(true);
         for (; countdown > 0; countdown--) {
-            Debug.Log("countdown: " + countdown);
             countdownText.text = countdown.ToString();
             yield return new WaitForSeconds(1);
             if (!IsEveryoneReady()) {
-                countdownText.enabled = false;
+                countdownText.gameObject.SetActive(false);
                 isCountdown = false;
                 yield break;
             }
         }
-        Debug.Log("reached 0");
         countdownText.text = countdown.ToString();
-        yield return new WaitForSeconds(3);
-        StartGameServerRpc(NetworkManager.Singleton.LocalClientId);
+        yield return new WaitForSeconds(0.5f);
+        StartGameServerRpc();
         isCountdown = false;
         yield break;
     }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void StartGameServerRpc(ServerRpcParams serverRpcParams = default) {
+        if (!IsEveryoneReady()) { return; }
+
+        ServerGameNetPortal.Instance.StartGame();
+
+        StartCoroutine(WaitForSceneToSpawn("SampleScene"));
+    }
+
+    private IEnumerator WaitForSceneToSpawn(string sceneName) {
+        yield return new WaitUntil(() => SceneManager.GetActiveScene().name == sceneName);
+
+        if (IsServer) {
+            foreach (NetworkClient client in NetworkManager.Singleton.ConnectedClientsList) {
+                GameObject go = Instantiate(playerPrefab, playerPrefab.transform.position, playerPrefab.transform.rotation);
+                go.GetComponent<NetworkObject>().SpawnAsPlayerObject(client.ClientId);
+            }
+        }
+    }
+
+    /*[ClientRpc]
+    private void SpawnPlayerClientRpc() {
+        GameObject go = Instantiate(playerPrefab, playerPrefab.transform.position, playerPrefab.transform.rotation);
+        go.GetComponent<NetworkObject>().SpawnAsPlayerObject(NetworkManager.Singleton.LocalClientId);
+    }*/
 
     public void OnLeaveClicked() {
         GameNetPortal.Instance.RequestDisconnect();
@@ -148,5 +178,38 @@ public class LobbyManager : NetworkBehaviour
                 lobbyPlayerModels[i].SetActive(false);
             }
         }
+
+        if (IsHost) {
+            HandleLobbyPlayerNames();
+        } else {
+            int playersPre = playerManager.PlayersInGame;
+            Debug.Log("Players: " + playersPre);
+            StartCoroutine(WaitForPlayerName(playersPre));
+        }
+    }
+
+    private IEnumerator WaitForPlayerName(int playersPre) {
+        yield return new WaitUntil(() => playerManager.PlayersInGame > playersPre);
+        HandleLobbyPlayerNames();
+    }
+
+    public void HandleLobbyPlayerNames() {
+        GetPlayerNameServerRpc(OwnerClientId);
+        var localPlayerOverlay = lobbyPlayerModels[0].GetComponentInChildren<TextMeshProUGUI>();
+        localPlayerOverlay.text = playerName.Value;
+        int j = 1;
+        for (ulong clientId = 0; clientId < (ulong)playerManager.PlayersInGame; clientId++) {
+            if (clientId == OwnerClientId) continue;
+
+            GetPlayerNameServerRpc(clientId);
+            localPlayerOverlay = lobbyPlayerModels[j].GetComponentInChildren<TextMeshProUGUI>();
+            localPlayerOverlay.text = playerName.Value;
+            j++;
+        }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void GetPlayerNameServerRpc(ulong clientId) {
+        playerName.Value = serverGameNetPortal.GetPlayerData(clientId).Value.PlayerName;
     }
 }
