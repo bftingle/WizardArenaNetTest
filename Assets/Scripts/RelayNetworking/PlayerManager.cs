@@ -8,11 +8,19 @@ public class PlayerManager : NetworkBehaviour
     public static PlayerManager Instance => instance;
     private static PlayerManager instance;
 
-    private NetworkVariable<int> playersInGame = new NetworkVariable<int>();
+    //private NetworkVariable<int> playersInGame = new NetworkVariable<int>();
+    private NetworkList<ulong> playerIdsInGame;
 
     public int PlayersInGame {
         get {
-            return playersInGame.Value;
+            return playerIdsInGame.Count;
+        }
+    }
+
+    public NetworkList<ulong> PlayerIdsInGame {
+        get {
+            Debug.Log("Number: " + PlayersInGame);
+            return playerIdsInGame;
         }
     }
 
@@ -24,6 +32,8 @@ public class PlayerManager : NetworkBehaviour
 
         instance = this;
         DontDestroyOnLoad(gameObject);
+
+        playerIdsInGame = new NetworkList<ulong>();
     }
 
     private void Start() {
@@ -42,13 +52,13 @@ public class PlayerManager : NetworkBehaviour
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void PlayersPlusPlusServerRpc() {
-        playersInGame.Value++;
-        Debug.Log("PP Runs");
+    public void AddPlayerIdServerRpc(ulong clientId) {
+        playerIdsInGame.Add(clientId);
+        Debug.Log("Adding: " + clientId);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void PlayersMinusMinusServerRpc() {
-        playersInGame.Value--;
+    public void RemovePlayerIdServerRpc(ulong clientId) {
+        playerIdsInGame.Remove(clientId);
     }
 }

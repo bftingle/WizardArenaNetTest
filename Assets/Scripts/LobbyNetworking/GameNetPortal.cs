@@ -72,7 +72,7 @@ namespace DapperDino.UMT.Lobby.Networking {
             if (NetworkManager.Singleton.StartHost()) {
                 Debug.Log("Host Started");
                 RegisterClientMessageHandlers();
-                playerManager.PlayersPlusPlusServerRpc();
+                playerManager.AddPlayerIdServerRpc(NetworkManager.Singleton.LocalClientId);
             }
             else {
                 Debug.Log("Host Not Started");

@@ -3402,6 +3402,7 @@ MonoBehaviour:
   - {fileID: 792867834}
   - {fileID: 1835826196}
   countdownText: {fileID: 458912280}
+  readyImage: {fileID: 2005824813}
   playerPrefab: {fileID: 5817909328514172319, guid: 8939cf66e1249324c9dedad3dbac52d5, type: 3}
   playerManager: {fileID: 1923015062}
   serverGameNetPortal: {fileID: 1339883316}

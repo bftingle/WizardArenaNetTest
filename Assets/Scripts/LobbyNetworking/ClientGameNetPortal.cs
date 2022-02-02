@@ -42,6 +42,7 @@ namespace DapperDino.UMT.Lobby.Networking {
             gameNetPortal.OnConnectionFinished += HandleConnectionFinished;
             gameNetPortal.OnDisconnectReasonReceived += HandleDisconnectReasonReceived;
             NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnect;
+            NetworkManager.Singleton.OnClientConnectedCallback += AddPlayerId;
         }
 
         private void OnDestroy() {
@@ -80,19 +81,22 @@ namespace DapperDino.UMT.Lobby.Networking {
             if (NetworkManager.Singleton.StartClient()) {
                 Debug.Log("Client Started");
                 //playerManager.PlayersPlusPlusServerRpc();
-                StartCoroutine(DelayPPCallToServer());
+                //StartCoroutine(DelayAddCallToServer());
             }
             else {
                 Debug.Log("Client Not Started");
             }
         }
 
-        private IEnumerator DelayPPCallToServer() {
-            yield return new WaitForSeconds(3f);
-            Debug.Log("plussing boiiiiii");
-            playerManager.PlayersPlusPlusServerRpc();
-            yield return new WaitForSeconds(0.5f);
-            Debug.Log(playerManager.PlayersInGame);
+        //private IEnumerator DelayAddCallToServer() {
+            //yield return new WaitForSeconds(3f);
+            //playerManager.AddPlayerIdServerRpc(NetworkManager.Singleton.LocalClientId);
+        //}
+
+        private void AddPlayerId(ulong clientId) {
+            if (clientId == NetworkManager.Singleton.LocalClientId) {
+                playerManager.AddPlayerIdServerRpc(NetworkManager.Singleton.LocalClientId);
+            }
         }
 
         private void HandleNetworkReadied() {

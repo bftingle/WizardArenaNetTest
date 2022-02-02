@@ -12,6 +12,7 @@ public class LobbyManager : NetworkBehaviour
 {
     public GameObject[] lobbyPlayerModels;
     public Text countdownText;
+    public Image readyImage;
     public GameObject playerPrefab;
     public PlayerManager playerManager;
     public ServerGameNetPortal serverGameNetPortal;
@@ -20,11 +21,13 @@ public class LobbyManager : NetworkBehaviour
     private bool isCountdown;
 
     private NetworkList<LobbyPlayerState> lobbyPlayers;
-    private NetworkVariable<NetworkString> playerName = new NetworkVariable<NetworkString>();
-    private List<NetworkVariable<ulong>> connectedClientIdsList = new List<NetworkVariable<ulong>>();
+    private string playerName;
+    private bool nameUpdated;
+    private bool containsId;
 
     private void Awake() {
         lobbyPlayers = new NetworkList<LobbyPlayerState>();
+        containsId = false;
 
         DontDestroyOnLoad(gameObject);
     }
@@ -66,14 +69,29 @@ public class LobbyManager : NetworkBehaviour
     }
 
     private void HandleClientConnected(ulong clientId) {
-        int playersPre = playerManager.PlayersInGame;
-        Debug.Log("Players: " + playersPre);
-        StartCoroutine(WaitForPlayer(clientId, playersPre));
+        StartCoroutine(WaitForPlayer(clientId));
     }
 
-    private IEnumerator WaitForPlayer(ulong clientId, int playersPre) {
-        yield return new WaitUntil(() => playerManager.PlayersInGame > playersPre);
+    private IEnumerator WaitForPlayer(ulong clientId) {
+        yield return new WaitUntil(() => {
+            CheckIdServerRpc(clientId);
+            return containsId;
+        });
         HandleClientConnectedReady(clientId);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void CheckIdServerRpc(ulong clientId) {
+        SetIdBoolClientRpc(!playerManager.PlayerIdsInGame.Contains(clientId), new ClientRpcParams {
+            Send = new ClientRpcSendParams {
+                TargetClientIds = new ulong[] { clientId }
+            }
+        });
+    }
+
+    [ClientRpc]
+    private void SetIdBoolClientRpc(bool containsIdFromServer, ClientRpcParams clientRpcParams = default) {
+        containsId = containsIdFromServer;
     }
 
     private void HandleClientConnectedReady(ulong clientId) {
@@ -118,21 +136,31 @@ public class LobbyManager : NetworkBehaviour
 
     private IEnumerator StartGameCountdown() {
         isCountdown = true;
-        countdownText.gameObject.SetActive(true);
+        SetCountdownActiveClientRpc(true);
         for (; countdown > 0; countdown--) {
-            countdownText.text = countdown.ToString();
+            SetCountdownTextClientRpc(countdown.ToString());
             yield return new WaitForSeconds(1);
             if (!IsEveryoneReady()) {
-                countdownText.gameObject.SetActive(false);
+                SetCountdownActiveClientRpc(false);
                 isCountdown = false;
                 yield break;
             }
         }
-        countdownText.text = countdown.ToString();
+        SetCountdownTextClientRpc(countdown.ToString());
         yield return new WaitForSeconds(0.5f);
         StartGameServerRpc();
         isCountdown = false;
         yield break;
+    }
+
+    [ClientRpc]
+    private void SetCountdownActiveClientRpc(bool active) {
+        countdownText.gameObject.SetActive(active);
+    }
+
+    [ClientRpc]
+    private void SetCountdownTextClientRpc(string text) {
+        countdownText.text = text;
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -167,6 +195,8 @@ public class LobbyManager : NetworkBehaviour
 
     public void OnReadyClicked() {
         ToggleReadyServerRpc();
+        if (readyImage.color == Color.green) readyImage.color = Color.white;
+        else readyImage.color = Color.green;
     }
 
     private void HandleLobbyPlayersStateChanged(NetworkListEvent<LobbyPlayerState> lobbyState) {
@@ -179,37 +209,44 @@ public class LobbyManager : NetworkBehaviour
             }
         }
 
-        if (IsHost) {
-            HandleLobbyPlayerNames();
-        } else {
-            int playersPre = playerManager.PlayersInGame;
-            Debug.Log("Players: " + playersPre);
-            StartCoroutine(WaitForPlayerName(playersPre));
-        }
+        StartCoroutine(WaitForPlayerName(lobbyPlayers.Count));
     }
 
-    private IEnumerator WaitForPlayerName(int playersPre) {
-        yield return new WaitUntil(() => playerManager.PlayersInGame > playersPre);
-        HandleLobbyPlayerNames();
-    }
-
-    public void HandleLobbyPlayerNames() {
-        GetPlayerNameServerRpc(OwnerClientId);
+    private IEnumerator WaitForPlayerName(int playersCount) {
+        Debug.Log("OCI: " + NetworkManager.Singleton.LocalClientId);
+        yield return new WaitUntil(() => playerManager.PlayersInGame >= playersCount);
+        nameUpdated = false;
+        GetPlayerNameServerRpc(NetworkManager.Singleton.LocalClientId, NetworkManager.Singleton.LocalClientId);
+        yield return new WaitUntil(() => nameUpdated);
+        Debug.Log("Id: " + NetworkManager.Singleton.LocalClientId + "  " + "Name: " + playerName);
         var localPlayerOverlay = lobbyPlayerModels[0].GetComponentInChildren<TextMeshProUGUI>();
-        localPlayerOverlay.text = playerName.Value;
+        localPlayerOverlay.text = playerName;
         int j = 1;
-        for (ulong clientId = 0; clientId < (ulong)playerManager.PlayersInGame; clientId++) {
-            if (clientId == OwnerClientId) continue;
+        foreach (ulong clientId in playerManager.PlayerIdsInGame) {
+            Debug.Log("All Ids: " + clientId);
+            if (clientId == NetworkManager.Singleton.LocalClientId) continue;
 
-            GetPlayerNameServerRpc(clientId);
+            nameUpdated = false;
+            GetPlayerNameServerRpc(clientId, NetworkManager.Singleton.LocalClientId);
+            yield return new WaitUntil(() => nameUpdated);
             localPlayerOverlay = lobbyPlayerModels[j].GetComponentInChildren<TextMeshProUGUI>();
-            localPlayerOverlay.text = playerName.Value;
+            localPlayerOverlay.text = playerName;
             j++;
         }
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void GetPlayerNameServerRpc(ulong clientId) {
-        playerName.Value = serverGameNetPortal.GetPlayerData(clientId).Value.PlayerName;
+    public void GetPlayerNameServerRpc(ulong userId, ulong clientId) {
+        SetNameStringClientRpc(serverGameNetPortal.GetPlayerData(userId).Value.PlayerName, new ClientRpcParams {
+            Send = new ClientRpcSendParams {
+                TargetClientIds = new ulong[] { clientId }
+            }
+        });
+    }
+
+    [ClientRpc]
+    private void SetNameStringClientRpc(string playerNameFromServer, ClientRpcParams clientRpcParams = default) {
+        playerName = playerNameFromServer;
+        nameUpdated = true;
     }
 }
