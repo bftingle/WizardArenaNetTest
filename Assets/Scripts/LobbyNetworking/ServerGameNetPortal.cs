@@ -127,7 +127,16 @@ namespace DapperDino.UMT.Lobby.Networking {
 
             ClearData();
 
-            SceneManager.LoadScene("Menu");
+            foreach (GameObject objectTD in gameNetPortal.toDestroy) {
+                if (!gameNetPortal.transitioning) break;
+                if (objectTD != null) Destroy(objectTD);
+                Debug.Log("objectTD Destroyed");
+            }
+            if (gameNetPortal.transitioning) {
+                gameNetPortal.transitioning = false;
+                SceneManager.LoadScene("Menu");
+            }
+            Debug.Log("Disconnect Done");
         }
 
         private void HandleServerStarted() {

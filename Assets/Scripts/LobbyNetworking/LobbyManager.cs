@@ -16,6 +16,7 @@ public class LobbyManager : NetworkBehaviour
     public GameObject playerPrefab;
     public PlayerManager playerManager;
     public ServerGameNetPortal serverGameNetPortal;
+    public GameNetPortal gameNetPortal;
 
     private int countdown;
     private bool isCountdown;
@@ -112,6 +113,7 @@ public class LobbyManager : NetworkBehaviour
         for (int i = 0; i < lobbyPlayers.Count; i++) {
             if (lobbyPlayers[i].ClientId == clientId) {
                 lobbyPlayers.RemoveAt(i);
+                playerManager.RemovePlayerIdServerRpc(clientId);
                 break;
             }
         }
@@ -190,6 +192,7 @@ public class LobbyManager : NetworkBehaviour
     }*/
 
     public void OnLeaveClicked() {
+        gameNetPortal.transitioning = true;
         GameNetPortal.Instance.RequestDisconnect();
     }
 

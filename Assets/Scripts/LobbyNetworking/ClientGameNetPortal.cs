@@ -55,6 +55,7 @@ namespace DapperDino.UMT.Lobby.Networking {
             if (NetworkManager.Singleton == null) { return; }
 
             NetworkManager.Singleton.OnClientDisconnectCallback -= HandleClientDisconnect;
+            NetworkManager.Singleton.OnClientConnectedCallback -= AddPlayerId;
         }
 
         public void StartClient() {
@@ -94,26 +95,37 @@ namespace DapperDino.UMT.Lobby.Networking {
         //}
 
         private void AddPlayerId(ulong clientId) {
-            if (clientId == NetworkManager.Singleton.LocalClientId) {
+            if (clientId == NetworkManager.Singleton.LocalClientId && !NetworkManager.Singleton.IsServer) {
                 playerManager.AddPlayerIdServerRpc(NetworkManager.Singleton.LocalClientId);
+                gameNetPortal.SetReadyActive();
             }
         }
 
         private void HandleNetworkReadied() {
             if (!NetworkManager.Singleton.IsClient) { return; }
 
-            if (!NetworkManager.Singleton.IsHost) {
+            //if (!NetworkManager.Singleton.IsHost) {
                 gameNetPortal.OnUserDisconnectRequested += HandleUserDisconnectRequested;
-            }
+            //}
         }
 
         private void HandleUserDisconnectRequested() {
+            Debug.Log("Disconnect Requested");
             DisconnectReason.SetDisconnectReason(ConnectStatus.UserRequestedDisconnect);
             NetworkManager.Singleton.Shutdown();
 
             HandleClientDisconnect(NetworkManager.Singleton.LocalClientId);
 
-            SceneManager.LoadScene("Scene_Menu");
+            foreach (GameObject objectTD in gameNetPortal.toDestroy) {
+                if (!gameNetPortal.transitioning) break;
+                if (objectTD != null) Destroy(objectTD);
+                Debug.Log("objectTD Destroyed");
+            }
+            if (gameNetPortal.transitioning) {
+                gameNetPortal.transitioning = false;
+                SceneManager.LoadScene("Menu");
+            }
+            Debug.Log("Disconnect Done");
         }
 
         private void HandleConnectionFinished(ConnectStatus status) {
@@ -129,19 +141,30 @@ namespace DapperDino.UMT.Lobby.Networking {
         }
 
         private void HandleClientDisconnect(ulong clientId) {
-            if (!NetworkManager.Singleton.IsConnectedClient && !NetworkManager.Singleton.IsHost) {
+            if (!NetworkManager.Singleton.IsConnectedClient/* && !NetworkManager.Singleton.IsHost*/) {
                 gameNetPortal.OnUserDisconnectRequested -= HandleUserDisconnectRequested;
 
-                if (SceneManager.GetActiveScene().name != "Scene_Menu") {
+                if (SceneManager.GetActiveScene().name != "Menu") {
                     if (!DisconnectReason.HasTransitionReason) {
                         DisconnectReason.SetDisconnectReason(ConnectStatus.GenericDisconnect);
                     }
 
-                    SceneManager.LoadScene("Scene_Menu");
+                    foreach (GameObject objectTD in gameNetPortal.toDestroy) {
+                        if (!gameNetPortal.transitioning) break;
+                        if (objectTD != null) Destroy(objectTD);
+                        Debug.Log("objectTD Destroyed");
+                    }
+                    if (gameNetPortal.transitioning) {
+                        gameNetPortal.transitioning = false;
+                        SceneManager.LoadScene("Menu");
+                    }
                 }
                 else {
                     OnNetworkTimedOut?.Invoke();
                 }
+
+                joinCodeInput.text = "";
+                joinCodeInput.readOnly = false;
             }
         }
     }

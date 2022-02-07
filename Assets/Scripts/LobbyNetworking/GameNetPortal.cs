@@ -25,6 +25,10 @@ namespace DapperDino.UMT.Lobby.Networking {
         public RelayManager relayManager;
         public LobbyManager lobbyManager;
         public PlayerManager playerManager;
+        public GameObject readyButton;
+
+        public GameObject[] toDestroy;
+        public bool transitioning;
 
         private void Awake() {
             if (instance != null && instance != this) {
@@ -34,6 +38,8 @@ namespace DapperDino.UMT.Lobby.Networking {
 
             instance = this;
             DontDestroyOnLoad(gameObject);
+
+            transitioning = false;
         }
 
         private void Start() {
@@ -73,6 +79,7 @@ namespace DapperDino.UMT.Lobby.Networking {
                 Debug.Log("Host Started");
                 RegisterClientMessageHandlers();
                 playerManager.AddPlayerIdServerRpc(NetworkManager.Singleton.LocalClientId);
+                SetReadyActive();
             }
             else {
                 Debug.Log("Host Not Started");
@@ -102,6 +109,10 @@ namespace DapperDino.UMT.Lobby.Networking {
             }
 
             OnNetworkReadied?.Invoke();
+        }
+
+        public void SetReadyActive() {
+            readyButton.SetActive(true);
         }
 
         #region Message Handlers
