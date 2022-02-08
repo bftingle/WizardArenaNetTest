@@ -135,6 +135,7 @@ namespace DapperDino.UMT.Lobby.Networking {
             if (gameNetPortal.transitioning) {
                 gameNetPortal.transitioning = false;
                 SceneManager.LoadScene("Menu");
+                Cursor.lockState = CursorLockMode.None;
             }
             Debug.Log("Disconnect Done");
         }
@@ -211,7 +212,7 @@ namespace DapperDino.UMT.Lobby.Networking {
         private IEnumerator WaitToDisconnectClient(ulong clientId, ConnectStatus reason) {
             gameNetPortal.ServerToClientSetDisconnectReason(clientId, reason);
 
-            yield return new WaitForSeconds(0);
+            yield return new WaitForSeconds(1);
 
             KickClient(clientId);
         }
@@ -222,7 +223,12 @@ namespace DapperDino.UMT.Lobby.Networking {
                 networkObject.Despawn(true);
             }
 
-            NetworkManager.Singleton.DisconnectClient(clientId);
+            //NetworkManager.Singleton.DisconnectClient(clientId);
+            gameNetPortal.lobbyManager.MakeClientLeaveClientRpc(new ClientRpcParams {
+                Send = new ClientRpcSendParams {
+                    TargetClientIds = new ulong[] { clientId }
+                }
+            });
         }
     }
 }

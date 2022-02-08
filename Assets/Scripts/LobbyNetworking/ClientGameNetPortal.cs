@@ -97,7 +97,7 @@ namespace DapperDino.UMT.Lobby.Networking {
         private void AddPlayerId(ulong clientId) {
             if (clientId == NetworkManager.Singleton.LocalClientId && !NetworkManager.Singleton.IsServer) {
                 playerManager.AddPlayerIdServerRpc(NetworkManager.Singleton.LocalClientId);
-                gameNetPortal.SetReadyActive();
+                if (SceneManager.GetActiveScene().name == "Menu") gameNetPortal.SetReadyActive();
             }
         }
 
@@ -124,6 +124,7 @@ namespace DapperDino.UMT.Lobby.Networking {
             if (gameNetPortal.transitioning) {
                 gameNetPortal.transitioning = false;
                 SceneManager.LoadScene("Menu");
+                Cursor.lockState = CursorLockMode.None;
             }
             Debug.Log("Disconnect Done");
         }
@@ -141,7 +142,7 @@ namespace DapperDino.UMT.Lobby.Networking {
         }
 
         private void HandleClientDisconnect(ulong clientId) {
-            if (!NetworkManager.Singleton.IsConnectedClient/* && !NetworkManager.Singleton.IsHost*/) {
+            if (NetworkManager.Singleton.LocalClientId == clientId) {
                 gameNetPortal.OnUserDisconnectRequested -= HandleUserDisconnectRequested;
 
                 if (SceneManager.GetActiveScene().name != "Menu") {
@@ -157,6 +158,7 @@ namespace DapperDino.UMT.Lobby.Networking {
                     if (gameNetPortal.transitioning) {
                         gameNetPortal.transitioning = false;
                         SceneManager.LoadScene("Menu");
+                        Cursor.lockState = CursorLockMode.None;
                     }
                 }
                 else {

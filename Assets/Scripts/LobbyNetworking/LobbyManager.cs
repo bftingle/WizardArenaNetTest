@@ -169,6 +169,8 @@ public class LobbyManager : NetworkBehaviour
     private void StartGameServerRpc(ServerRpcParams serverRpcParams = default) {
         if (!IsEveryoneReady()) { return; }
 
+        lobbyPlayers.OnListChanged -= HandleLobbyPlayersStateChanged;
+
         ServerGameNetPortal.Instance.StartGame();
 
         StartCoroutine(WaitForSceneToSpawn("SampleScene"));
@@ -251,5 +253,11 @@ public class LobbyManager : NetworkBehaviour
     private void SetNameStringClientRpc(string playerNameFromServer, ClientRpcParams clientRpcParams = default) {
         playerName = playerNameFromServer;
         nameUpdated = true;
+    }
+
+    [ClientRpc]
+    public void MakeClientLeaveClientRpc(ClientRpcParams clientRpcParams = default) {
+        gameNetPortal.transitioning = true;
+        GameNetPortal.Instance.RequestDisconnect();
     }
 }
