@@ -194,6 +194,17 @@ public class LobbyManager : NetworkBehaviour
     }*/
 
     public void OnLeaveClicked() {
+        if (IsHost) {
+            MakeClientLeaveClientRpc();
+            StartCoroutine(WaitToLeaveHost());
+        } else {
+            gameNetPortal.transitioning = true;
+            GameNetPortal.Instance.RequestDisconnect();
+        }
+    }
+
+    private IEnumerator WaitToLeaveHost() {
+        yield return new WaitUntil(() => playerManager.PlayersInGame == 1);
         gameNetPortal.transitioning = true;
         GameNetPortal.Instance.RequestDisconnect();
     }
@@ -257,7 +268,9 @@ public class LobbyManager : NetworkBehaviour
 
     [ClientRpc]
     public void MakeClientLeaveClientRpc(ClientRpcParams clientRpcParams = default) {
-        gameNetPortal.transitioning = true;
-        GameNetPortal.Instance.RequestDisconnect();
+        if (!IsHost) {
+            gameNetPortal.transitioning = true;
+            GameNetPortal.Instance.RequestDisconnect();
+        }
     }
 }
